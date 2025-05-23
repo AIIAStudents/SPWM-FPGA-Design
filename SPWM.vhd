@@ -2,7 +2,12 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity spwm is
+entity SPWM_main is
+    generic (
+        SIN_WIDTH         : integer := 8;
+      	SIN_TABLE_SIZE     : integer := 256;
+        SIN_UPDATE_PERIOD : integer := 2
+    );
     port(
         i_clk      : in  std_logic;
         i_rst      : in  std_logic;
@@ -10,22 +15,19 @@ entity spwm is
     );
 end entity;
 
-architecture rtl of spwm is
+architecture rtl of SPWM_main is
 
     type state_type is (state_high, state_low);
     signal state : state_type := state_low;
 
-    signal sin_index : unsigned(7 downto 0) := (others => '0');
-    signal sin_val   : unsigned(7 downto 0);
-
-    signal sec_high : integer range 0 to 255 := 0;
-    signal sec_low  : integer range 0 to 255 := 0;
-
-    signal divide  : unsigned(25 downto 0) := (others => '0');
-    signal clk_div : std_logic := '0';
+    signal sin_index  : unsigned(SIN_WIDTH-1 downto 0) := (others => '0');
+    signal sin_value  : unsigned(SIN_WIDTH-1 downto 0);
+    signal cnt_high   : integer range 0 to 2**SIN_WIDTH-1 := 0;
+    signal cnt_low    : integer range 0 to 2**SIN_WIDTH-1 := 0;
+    signal cnt_sin    : integer := 0;
 
     type sine_table_type is array(0 to 255) of unsigned(7 downto 0);
-      constant sine_lut : sine_table_type := (
+        constant sine_lut : sine_table_type := (
         0 => "01111111", 1 => "10000010", 2 => "10000101", 3 => "10001000",
         4 => "10001011", 5 => "10001111", 6 => "10010010", 7 => "10010101",
         8 => "10011000", 9 => "10011011", 10 => "10011110", 11 => "10100001",
@@ -95,94 +97,85 @@ architecture rtl of spwm is
 
 begin
 
-    clk_divider : process(i_clk, i_rst)
-    begin 
-       clk_div <= divide(12);
-        if i_rst = '1' then
-            divide <= (others => '0');
-        elsif rising_edge(i_clk) then
-            divide <= divide + 1;
-        end if;
-      
-    end process;
-
     lut_proc : process(sin_index)
     begin
-        sin_val <= sine_lut(to_integer(sin_index));
+        sin_value <= sine_lut(to_integer(sin_index));
     end process;
 
-    counter_high : process(clk_div, i_rst)
+    counter_high : process(i_clk, i_rst)
     begin
-        if i_rst = '1' then
-            sec_high <= 0;
-        elsif rising_edge(clk_div) then
+        if i_rst = '0' then
+            cnt_high <= 0;
+        elsif rising_edge(i_clk) then
             if state = state_high then
-                if sec_high < to_integer(sin_val) then
-                    sec_high <= sec_high + 1;
+                if cnt_high < to_integer(sin_value) then
+                    cnt_high <= cnt_high + 1;
                 else
-                    sec_high <= 0;
+                    cnt_high <= 0;
                 end if;
             else
-                sec_high <= 0;
+                cnt_high <= 0;
             end if;
         end if;
     end process;
 
-    counter_low : process(clk_div, i_rst)
+    counter_low : process(i_clk, i_rst)
     begin
-        if i_rst = '1' then
-            sec_low <= 0;
-        elsif rising_edge(clk_div) then
+        if i_rst = '0' then
+            cnt_low <= 0;
+        elsif rising_edge(i_clk) then
             if state = state_low then
-                if sec_low < (255 - to_integer(sin_val)) then
-                    sec_low <= sec_low + 1;
+                if cnt_low < (2**SIN_WIDTH - 1 - to_integer(sin_value)) then
+                    cnt_low <= cnt_low + 1;
                 else
-                    sec_low <= 0;
+                    cnt_low <= 0;
                 end if;
             else
-                sec_low <= 0;
+                cnt_low <= 0;
             end if;
         end if;
     end process;
 
     fsm_proc : process(i_clk, i_rst)
-    begin 
-        if i_rst = '1' then
+    begin
+        if i_rst = '0' then
             state     <= state_low;
             sin_index <= (others => '0');
+            cnt_sin   <= 0;
         elsif rising_edge(i_clk) then
             case state is
                 when state_high =>
-                    if sec_high = to_integer(sin_val) then
+                    if cnt_high = to_integer(sin_value) then
                         state <= state_low;
-                    else
-					    state   <= state_high;
-					end if;
+                    end if;
 
                 when state_low =>
-                    if sec_low = (255 - to_integer(sin_val)) then
+                    if cnt_low = (2**SIN_WIDTH - 1 - to_integer(sin_value)) then
                         state <= state_high;
-                        if sin_index = to_unsigned(255, 8) then
-                            sin_index <= (others => '0');
+
+                        if cnt_sin = SIN_UPDATE_PERIOD - 1 then
+                            cnt_sin <= 0;
+                            if sin_index = to_unsigned(SIN_TABLE_SIZE-1, SIN_WIDTH) then
+                                sin_index <= (others => '0');
+                            else
+                                sin_index <= sin_index + 1;
+                            end if;
                         else
-                            sin_index <= sin_index + 1;
+                            cnt_sin <= cnt_sin + 1;
                         end if;
                     end if;
             end case;
         end if;
     end process;
-    
-    outt: process(clk_div, i_rst)
-        begin
-            if i_rst = '1' then
-                o_pwm_out <= '0';
-            elsif rising_edge(clk_div) then
-                if state = state_high then
-                        o_pwm_out <= '1';
-                elsif state = state_low then
-                        o_pwm_out <= '0';
-                end if; 
-            end if;
-        end process;
-	
+
+
+    outt : process(state)
+    begin
+        if state = state_high then
+            o_pwm_out <= '1';
+        else
+            o_pwm_out <= '0';
+        end if;
+    end process;
+
 end architecture;
