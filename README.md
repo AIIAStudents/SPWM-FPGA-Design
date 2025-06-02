@@ -1,4 +1,4 @@
-# SPWM FPGA Design (PLL + Divider)
+# SPWM FPGA Design
 
 本專案在 FPGA 上實作正弦波脈寬調變（SPWM, Sinusoidal Pulse Width Modulation），並透過 **PLL** 和 **除頻器** 精準產生近似 60Hz 的 SPWM 波形輸出。
 
