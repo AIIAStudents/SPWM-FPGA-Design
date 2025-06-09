@@ -69,7 +69,7 @@
 | `SPWM_test.xdc`        | 約束檔，設定輸入時脈與 PWM 輸出腳位           |
 
 ## 架構圖
-![image](https://github.com/user-attachments/assets/7f9c49fd-b3a4-4114-be2f-f821d6ef508f)
+![image](https://github.com/user-attachments/assets/053dc78b-e4f4-4f1a-a859-aca0926e1030)
 
 ## 參數說明
 
@@ -88,12 +88,15 @@
 - **LUT 點數：** 256 筆
 
 
-
 ##  測試方法
 
 1. 在 Vivado 中完成 Bitstream 產生
 2. 上板後以邏輯分析儀或示波器觀察 `o_pwm_out`
 3. 預期看到頻率為約 **60Hz 的 SPWM 波形**
 
----
+##  DEMO 
+
+![image](https://github.com/user-attachments/assets/02928332-8c63-44dc-98eb-8f0caff01339)
+
+
 
