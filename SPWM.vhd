@@ -6,20 +6,22 @@ entity SPWM_main is
     generic (
         SIN_WIDTH         : integer := 8;
       	SIN_TABLE_SIZE     : integer := 256;
-        SIN_UPDATE_PERIOD : integer := 2
+        SIN_UPDATE_PERIOD : integer := 1
     );
     port(
-        i_clk      : in  std_logic;
-        i_rst      : in  std_logic;
-        o_pwm_out  : out std_logic
+        i_clk        : in  std_logic;
+        i_rst        : in  std_logic;
+        i_sw_freq   : in  std_logic_vector(3 downto 0); 
+        o_pwm_out    : out std_logic;
+        o_sin_led    : out std_logic
     );
 end entity;
 
 architecture rtl of SPWM_main is
 
-    type state_type is (state_high, state_low);
-    signal state : state_type := state_low;
-
+    type STATE_TYPE is (STATE_HIGH, STATE_LOW);
+    signal STATE : STATE_TYPE := STATE_LOW;
+    signal step_val : unsigned(SIN_WIDTH-1 downto 0) := (others=>'0');
     signal sin_index  : unsigned(SIN_WIDTH-1 downto 0) := (others => '0');
     signal sin_value  : unsigned(SIN_WIDTH-1 downto 0);
     signal cnt_high   : integer range 0 to 2**SIN_WIDTH-1 := 0;
@@ -101,14 +103,28 @@ begin
     begin
         sin_value <= sine_lut(to_integer(sin_index));
     end process;
+    
+    sin_LED : process(sin_index)
+    begin
+        if sin_index < to_unsigned(SIN_TABLE_SIZE/2, SIN_WIDTH) then
+            o_sin_led <= '1';  
+        else
+            o_sin_led <= '0'; 
+        end if;
+    end process;
+    
+  process(i_sw_freq)
+  begin
+    step_val <= to_unsigned(2 ** to_integer(unsigned(i_sw_freq)), SIN_WIDTH);
+  end process;
 
     counter_high : process(i_clk, i_rst)
-    begin
-        if i_rst = '0' then
+    begin 
+        if (i_rst = '0') then
             cnt_high <= 0;
         elsif rising_edge(i_clk) then
-            if state = state_high then
-                if cnt_high < to_integer(sin_value) then
+            if (STATE = STATE_HIGH) then
+                if  (cnt_high < ((to_integer(sin_value)))) then
                     cnt_high <= cnt_high + 1;
                 else
                     cnt_high <= 0;
@@ -121,11 +137,11 @@ begin
 
     counter_low : process(i_clk, i_rst)
     begin
-        if i_rst = '0' then
+        if (i_rst = '0') then
             cnt_low <= 0;
         elsif rising_edge(i_clk) then
-            if state = state_low then
-                if cnt_low < (2**SIN_WIDTH - 1 - to_integer(sin_value)) then
+            if (STATE = STATE_LOW) then
+                if (cnt_low < (((2**SIN_WIDTH - 1 - to_integer(sin_value))))) then
                     cnt_low <= cnt_low + 1;
                 else
                     cnt_low <= 0;
@@ -138,27 +154,26 @@ begin
 
     fsm_proc : process(i_clk, i_rst)
     begin
-        if i_rst = '0' then
-            state     <= state_low;
+        if (i_rst = '0') then
+            STATE     <= STATE_LOW;
             sin_index <= (others => '0');
             cnt_sin   <= 0;
         elsif rising_edge(i_clk) then
-            case state is
-                when state_high =>
-                    if cnt_high = to_integer(sin_value) then
-                        state <= state_low;
+            case STATE is
+                when STATE_HIGH =>
+                    if (cnt_high = ((to_integer(sin_value) ))) then
+                        STATE <= STATE_LOW;
                     end if;
 
-                when state_low =>
-                    if cnt_low = (2**SIN_WIDTH - 1 - to_integer(sin_value)) then
-                        state <= state_high;
-
-                        if cnt_sin = SIN_UPDATE_PERIOD - 1 then
+                when STATE_LOW =>
+                    if (cnt_low = ((2**SIN_WIDTH - 1 - to_integer(sin_value)))) then 
+                        STATE <= STATE_HIGH;
+                        if (cnt_sin = SIN_UPDATE_PERIOD - 1) then
                             cnt_sin <= 0;
-                            if sin_index = to_unsigned(SIN_TABLE_SIZE-1, SIN_WIDTH) then
+                            if (sin_index = to_unsigned(SIN_TABLE_SIZE-1, SIN_WIDTH)) then
                                 sin_index <= (others => '0');
                             else
-                                sin_index <= sin_index + 1;
+                               sin_index <= sin_index  + step_val;
                             end if;
                         else
                             cnt_sin <= cnt_sin + 1;
@@ -171,7 +186,7 @@ begin
 
     outt : process(state)
     begin
-        if state = state_high then
+        if (state = STATE_HIGH) then
             o_pwm_out <= '1';
         else
             o_pwm_out <= '0';
