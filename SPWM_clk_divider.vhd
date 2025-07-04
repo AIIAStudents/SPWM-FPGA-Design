@@ -6,7 +6,7 @@ entity SPWM_clk_divider is
     port(
         i_clk     : in  std_logic;                    
         i_rst     : in  std_logic;
-        i_sw_freq : in  std_logic_vector(6 downto 0); 
+--             i_sw_freq : in  std_logic_vector(6 downto 0); 
         o_clk_div : out std_logic                     
     );
 end entity;
@@ -22,6 +22,6 @@ begin
             divide <= divide + 1;
         end if;
     end process;
-
-    o_clk_div <= std_logic(divide(3 + to_integer(unsigned(i_sw_freq))));
+--    o_clk_div <= std_logic(divide(3 + to_integer(unsigned(i_sw_freq))));
+    o_clk_div <= std_logic(divide(3));
 end architecture; 
