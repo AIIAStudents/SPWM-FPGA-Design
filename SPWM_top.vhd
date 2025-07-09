@@ -18,18 +18,20 @@ architecture behavioral of SPWM_top is
     
     signal clk_out1_0                            : std_logic;
     signal locked_0                              : std_logic;
-    signal sin_value_a, sin_value_b, sin_value_c : std_logic_vector(8 downto 0);
+    signal sin_value_a, sin_value_b, sin_value_c : std_logic_vector(7 downto 0);
     signal clk_div_sig                           : std_logic;
+    signal clk_div_sig_index                     : std_logic;
     signal pll_reset                             : std_logic;
---    signal phase_a,phase_b,phase_c               : unsigned(8 downto 0);
-    signal sin_index                             : std_logic_vector(8 downto 0);
+--    signal sin_index                             : std_logic_vector(8 downto 0);
     
     component SPWM_clk_divider
         port(
-            i_clk     : in  std_logic;
-            i_rst     : in  std_logic;
-    --            i_sw_freq : in  std_logic_vector(6 downto 0);
-            o_clk_div : out std_logic
+            i_clk           : in  std_logic;
+            i_rst           : in  std_logic;
+--            i_sw_freq : in  std_logic_vector(6 downto 0);
+            o_clk_div       : out std_logic;
+            o_clk_div_index : out std_logic 
+            
         );
     end component;
 
@@ -37,7 +39,7 @@ architecture behavioral of SPWM_top is
         port(
             i_clk      : in  std_logic;                    
             i_rst      : in  std_logic;  
-            i_duty     : in  std_logic_vector(8 downto 0);                  
+            i_duty     : in  std_logic_vector(7 downto 0);                  
             o_pwm_out  : out std_logic;
             o_sin_led  : out std_logic                     
         );
@@ -56,9 +58,9 @@ architecture behavioral of SPWM_top is
         port(
             i_clk     : in  std_logic;   
             i_rst     : in  std_logic;   
-            o_sin_value_a : out std_logic_vector(8 downto 0);
-            o_sin_value_b : out std_logic_vector(8 downto 0);
-            o_sin_value_c : out std_logic_vector(8 downto 0)
+            o_sin_value_a : out std_logic_vector(7 downto 0);
+            o_sin_value_b : out std_logic_vector(7 downto 0);
+            o_sin_value_c : out std_logic_vector(7 downto 0)
     );
     end component;
 
@@ -69,8 +71,10 @@ begin
         port map(
             i_clk      => clk_out1_0,
             i_rst      => i_rst, 
-     --           i_sw_freq  => i_sw_freq,
-            o_clk_div  => clk_div_sig
+     --            i_sw_freq  => i_sw_freq,
+            o_clk_div  => clk_div_sig,
+           o_clk_div_index  => clk_div_sig_index   
+            
         );
 
     spwm_1: SPWM_main
@@ -81,7 +85,7 @@ begin
             o_pwm_out  => o_pwm_a,            
             o_sin_led  => o_sin_led 
         );
-        
+
     spwm_2: SPWM_main
           port map(
             i_clk      => clk_div_sig,
@@ -100,9 +104,9 @@ begin
             o_sin_led  => o_sin_led 
         );
 
-    SPWM_indexx: SPWM_index
+        SPWM_indexx: SPWM_index
           port map( 
-            i_clk         => clk_div_sig,   
+            i_clk         => clk_div_sig_index,   
             i_rst         => i_rst,         
             o_sin_value_a => sin_value_a ,
             o_sin_value_b => sin_value_b,
