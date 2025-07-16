@@ -69,7 +69,8 @@
 | `SPWM_test.xdc`        | 約束檔，設定輸入時脈與 PWM 輸出腳位           |
 
 ## 架構圖
-![image](https://github.com/user-attachments/assets/053dc78b-e4f4-4f1a-a859-aca0926e1030)
+<img width="1940" height="753" alt="image" src="https://github.com/user-attachments/assets/4ff90b22-f5e0-4040-a26b-03f770396553" />
+
 
 ## 參數說明
 
@@ -95,8 +96,11 @@
 3. 預期看到頻率為約 **60Hz 的 SPWM 波形**
 
 ##  DEMO 
-
+1. 單一SPWM
 ![image](https://github.com/user-attachments/assets/02928332-8c63-44dc-98eb-8f0caff01339)
+
+2. 三相SPWM  
+    <img width="800" height="632" alt="image" src="https://github.com/user-attachments/assets/a1541ad9-5f5d-40ba-8052-24d83b501f53" />
 
 
 
